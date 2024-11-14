@@ -1,0 +1,23 @@
+# see: https://github.com/songlab-cal/gpn
+gpn @ https://github.com/songlab-cal/gpn/archive/refs/tags/0.5.zip
+
+# see: https://matplotlib.org
+matplotlib == 3.9.2
+
+# see here: https://seaborn.pydata.org
+seaborn == 0.13.2
+
+# see here: https://pandas.pydata.org
+pandas == 2.2.3
+
+# see here: https://scikit-learn.org
+scikit-learn == 1.5.2
+
+# see here: https://pytorch.org
+torch == 2.5.1
+
+# see here: https://huggingface.co/docs/transformers/index
+transformers == 4.46.2
+
+# see here: https://docs.jupyter.org/en/latest/
+jupyter == 1.1.1

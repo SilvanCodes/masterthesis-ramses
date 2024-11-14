@@ -1,0 +1,5 @@
+# any build apptainers images
+*.sif
+
+# jupyter checkpoints
+**/.ipynb_checkpoints/

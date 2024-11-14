@@ -1,0 +1,11 @@
+Bootstrap: docker
+From: python:3.12.0
+
+%files
+    ./requirements.txt /opt
+
+%post
+    pip install -r /opt/requirements.txt
+
+%startscript
+    jupyter notebook
