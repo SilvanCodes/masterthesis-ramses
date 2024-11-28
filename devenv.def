@@ -8,4 +8,4 @@ From: python:3.12.0
     pip install -r /opt/requirements.txt
 
 %startscript
-    jupyter notebook
+    jupyter notebook --no-browser --port 9999
