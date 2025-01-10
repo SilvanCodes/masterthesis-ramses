@@ -16,7 +16,7 @@ apptainer build --nv devenv.sif devenv.def
 
 Run .sif interactively
 ```sh
-apptainer shell devenv.sif
+apptainer shell --nv devenv.sif
 ```
 
 Run .sif as jupyter server in background
@@ -49,10 +49,27 @@ Start jupyter notebook server.
 jupyter notebook --no-browser --port 9999
 ```
 
-Setup portforwarding of compute node via login node to local machine in new shell.
+Setup portforwarding of compute node via login node to local machine in new shell. (https://people.cs.umass.edu/~kexiao/posts/jupyter_notebook_remote_slurm.html)
 ```sh
 ssh -t -t sbuedenb@ramses -L 9999:localhost:8008 ssh ramses15229 -L 8008:localhost:9999
 ```
+
+## Spike: Make a NDM from GPN
+> see: scripts/nucleotide_dependency_maps_for_gpn.ipynb
+
+## Spike: Re-run UMAP plot from GPN paper
+
+Clone gpn repository
+
+Had to install many new python libs, see requirements.txt
+
+Had to install vcftools
+
+Had to fix `rename_reference` rule in Snakefile
+
+Had to get a node with proper GPU (more than ~4GB VRAM) to run `run_umap` rule
+
+
 
 ## General stuff
 
@@ -62,3 +79,65 @@ List default AG:
 Put ninja in path in case flash-attn has to be build.
 
 `export PATH='/home/sbuedenb/.local/bin':$PATH`
+
+
+```bash
+salloc -p gpu --ntasks=1 --cpus-per-task=16 --time=100:00 --mem=40gb -G 2
+srun --pty bash
+```
+> --ntasks => "cores"
+> --cpus-per-task => "threads"
+> -G 1 => "GPUs"
+
+
+## Problems
+
+```bash
+salloc -p gpu --ntasks=1 --cpus-per-task=16 --time=300:00 --mem=40gb -G 1
+...
+47%|██████████████████████████████████████                                           | 1258/2675 [1:31:09<1:42:45,  4.35s/it]
+salloc: Job 255505 has exceeded its time limit and its allocation has been revoked.
+srun: forcing job termination
+Hangup
+[sbuedenb@ramses4 masterthesis]$ srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 255506.0 ON ramses16304 CANCELLED AT 2024-12-20T14:27:46 ***
+srun: error: ramses16304: task 0: Killed
+srun: Terminating StepId=255506.0
+tcsetattr: Input/output error
+
+---
+
+salloc -p gpu --ntasks=1 --cpus-per-task=16 --time=300:00 --mem=40gb -G 2
+...
+66%|█████████████████████████████████████████████████▍                         | 882/1338 [2:43:55<1:24:51, 11.17s/it]
+salloc: Job 255506 has exceeded its time limit and its allocation has been revoked.
+srun: forcing job termination
+Hangup
+[sbuedenb@ramses4 masterthesis]$ srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 255532.0 ON ramses16301 CANCELLED AT 2024-12-20T17:55:18 ***
+srun: error: ramses16301: task 0: Killed
+srun: Terminating StepId=255532.0
+tcsetattr: Input/output error
+
+---
+
+salloc -p gpu --ntasks=1 --cpus-per-task=16 --time=6:00:00 --mem=100gb -G 4
+...
+99%|█████████████████████████████████████████████████████████████████████████████▎| 663/669 [2:03:40<01:07, 11.19s/it]
+salloc: Job 255532 has exceeded its time limit and its allocation has been revoked.
+srun: forcing job termination
+Hangup
+[sbuedenb@ramses4 masterthesis]$ srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 255604.0 ON ramses16304 CANCELLED AT 2024-12-20T20:08:49 ***
+srun: error: ramses16304: task 0: Killed
+srun: Terminating StepId=255604.0
+tcsetattr: Input/output error
+
+---
+
+salloc -p gpu --ntasks=1 --cpus-per-task=16 --time=6:00:00 --mem=100gb -G 4
+...
+
+
+
+```
