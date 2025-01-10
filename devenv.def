@@ -5,6 +5,7 @@ From: python:3.12.0
     ./requirements.txt /opt
 
 %post
+    apt-get update && apt-get install -y vcftools
     pip install -r /opt/requirements.txt
 
 %startscript

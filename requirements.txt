@@ -24,3 +24,58 @@ jupyter == 1.1.1
 
 # see here: https://pytorch.org/vision/stable/index.html
 torchvision == 0.20.1
+
+# see here: https://snakemake.github.io
+snakemake == 8.25.5
+
+# see here: https://github.com/althonos/pymemesuite
+pymemesuite == 0.1.0a3
+
+# see here: https://github.com/jbkinney/logomaker
+logomaker == 0.8
+
+# see here: https://sgkit-dev.github.io/sgkit/latest/
+sgkit == 0.9.0
+
+# see here: https://github.com/brentp/cyvcf2
+cyvcf2 == 0.31.1
+
+# see here: https://github.com/h5py/h5py
+h5py == 3.12.1
+
+# see here: https://github.com/more-itertools/more-itertools
+more-itertools == 10.5.0
+
+# see here: https://scipy.org
+scipy == 1.14.1
+
+# see here: https://www.statsmodels.org/stable/index.html
+statsmodels == 0.14.0
+
+# see here: https://umap-learn.readthedocs.io/en/latest/basic_usage.html
+umap-learn[plot] == 0.5.7
+
+# see here: https://scanpy.readthedocs.io/en/stable/
+scanpy == 1.10.4
+
+# see here: https://python.igraph.org/en/latest/index.html
+igraph == 0.11.8
+
+# see here: https://github.com/vtraag/leidenalg
+leidenalg == 0.10.2
+
+# - pytorch-cuda ?
+# - snakemake
+# - pymemesuite
+# - logomaker
+# - sgkit
+# - cyvcf2
+# - h5py
+# - more-itertools
+# - scipy
+# - statsmodels
+# - umap-learn
+# - scanpy
+# - python-igraph
+# - leidenalg
+# - ncbi-datasets-cli => standalone cli tool
