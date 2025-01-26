@@ -28,7 +28,7 @@ apptainer instance start devenv.sif devenv-instance-1
 ## Get interactive node with some GPUS
 
 ```sh
-srun -p interactive --time=60:00 --pty /bin/bash
+srun -p interactive --time=2:00:00 --mem=100gb -G 2 --pty /bin/bash
 ```
 
 Run apptainer with [`--nv` flag](https://apptainer.org/docs/user/main/gpu.html) to make cuda and graphics cards accessible.
@@ -51,7 +51,7 @@ jupyter notebook --no-browser --port 9999
 
 Setup portforwarding of compute node via login node to local machine in new shell. (https://people.cs.umass.edu/~kexiao/posts/jupyter_notebook_remote_slurm.html)
 ```sh
-ssh -t -t sbuedenb@ramses -L 9999:localhost:8008 ssh ramses15229 -L 8008:localhost:9999
+ssh -t -t sbuedenb@ramses -L 9999:localhost:8008 ssh ramses15229 -L 8008:localhost:10001
 ```
 
 ## Spike: Make a NDM from GPN
@@ -69,6 +69,16 @@ Had to fix `rename_reference` rule in Snakefile
 
 Had to get a node with proper GPU (more than ~4GB VRAM) to run `run_umap` rule
 
+## Workaround for ncbi-datasets-cli (autority error)
+
+- check NCBI page of genome ([Tribolium](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_031307605.1/))
+- handpick files from FTP server
+
+```bash
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/031/307/605/GCF_031307605.1_icTriCast1.1/GCF_031307605.1_icTriCast1.1_genomic.fna.gz
+
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/031/307/605/GCF_031307605.1_icTriCast1.1/GCF_031307605.1_icTriCast1.1_genomic.gff.gz
+```
 
 
 ## General stuff
