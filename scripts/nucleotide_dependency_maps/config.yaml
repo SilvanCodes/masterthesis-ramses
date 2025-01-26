@@ -1,0 +1,10 @@
+# look at ncbi ftp links to find new urls
+FASTA_URL: {
+  "GCF_000001735.4": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/735/GCF_000001735.4_TAIR10.1/GCF_000001735.4_TAIR10.1_genomic.fna.gz"
+}
+
+
+CHROMOSOME: "NC_000932.1"
+START_POSITION: 0
+END_POSITION: 100
+
