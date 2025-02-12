@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import torch
 from datasets import Dataset
+from matplotlib.colors import LogNorm
 from transformers import DefaultDataCollator
 
 
@@ -91,9 +92,14 @@ def model_inference(model, tokenizer, data_loader, device="cuda"):
                 outputs = (
                     model(input_ids=tokens.to(device)).logits.cpu().to(torch.float32)
                 )
-        output_probs = torch.nn.functional.softmax(outputs, dim=-1)[
-            :, :, acgt_idxs
-        ]  # B, L_seq, 4
+        # calculate probability distribution only over the logits of nucleotides, not all tokens
+        nucleotide_logits = outputs[:, :, acgt_idxs]
+        output_probs = torch.nn.functional.softmax(nucleotide_logits, dim=-1)
+
+        # this calculates softmax over all tokens
+        # output_probs = torch.nn.functional.softmax(outputs, dim=-1)[
+        #     :, :, acgt_idxs
+        # ]  # B, L_seq, 4
         output_arrays.append(output_probs)
 
     # rebuild to B, L_seq, 4
@@ -142,13 +148,29 @@ def compute_dependency_map(seq, model, tokenizer, epsilon=1e-10):
 
 ## Visualization functions
 def map_seq_to_file(
-    matrix, dna_sequence, path, format, plot_size=10, vmax=5, tick_label_fontsize=8
+    matrix,
+    dna_sequence,
+    path,
+    format,
+    plot_size=10,
+    vmax=5,
+    tick_label_fontsize=8,
+    title=None,
 ):
 
     fig, ax = plt.subplots(figsize=(plot_size, plot_size))
 
+    if title is not None:
+        ax.set_title(title)
+
     sns.heatmap(
-        matrix, cmap="coolwarm", vmax=vmax, ax=ax, xticklabels=False, yticklabels=False
+        matrix,
+        cmap="coolwarm",
+        vmax=vmax,
+        ax=ax,
+        xticklabels=False,
+        yticklabels=False,
+        # norm=LogNorm(),
     )
     ax.set_aspect("equal")
 

@@ -1,32 +1,23 @@
 configfile: "config.yaml"
 
 
-# put in config ?
-models = [
-    "gonzalobenegas/gpn-brassicales",
-]
-
-sequences = [
-    "GCF_000001735.4",
-]
-
-region = {"start": 0, "end": 100}
-
-
-def generate_file(wildcards):
-    position = config["POSITION"]
-    f"output/display_dependency_map/{wildcards.model}/{wildcards.sequence}/ndm_{position.chromosome}_{position.start}_{position.end}.png"
+assert config["START_POSITION"] < config["END_POSITION"]
+assert (config["END_POSITION"] - config["START_POSITION"]) - config[
+    "DISPLAY_MAP_START_RELATIVE"
+] + config["DISPLAY_MAP_END_RELATIVE"] + 1 > 0
 
 
 rule all:
     input:
         expand(
-            "output/compute_dependency_map/{model}/{sequence}/ndm_{chromosome}_{start}_{end}.png",
-            model=models,
-            sequence=sequences,
+            "output/display_dependency_map/{model}/{sequence}/{chromosome}/seq_{seq_start}-{seq_end}/dp_{map_start}-{map_end}.png",
+            model=config["MODELS"],
+            sequence=config["SEQUENCES"],
             chromosome=config["CHROMOSOME"],
-            start=config["START_POSITION"],
-            end=config["END_POSITION"],
+            seq_start=config["START_POSITION"],
+            seq_end=config["END_POSITION"],
+            map_start=config["DISPLAY_MAP_START_RELATIVE"],
+            map_end=config["DISPLAY_MAP_END_RELATIVE"],
         ),
 
 
@@ -45,16 +36,16 @@ rule compute_dependency_map:
     params:
         model=lambda wildcards: wildcards.model,
     output:
-        # "output/compute_dependency_map/{model}/{sequence}/ndm_{chromosome}_{start}_{end}.parquet",
-        "output/compute_dependency_map/{model}/{sequence}/ndm_{chromosome}_{start}_{end}.{format}",
+        "output/compute_dependency_map/{model}/{sequence}/{chromosome}/seq_{seq_start}-{seq_end}.parquet",
     script:
         "scripts/compute_dependency_map.py"
 
 
-# rule display_dependency_map:
-#     input:
-#         "output/compute_dependency_map/{model}/{sequence}/ndm_{chromosome}_{start}_{end}.parquet",
-#     output:
-#         "output/display_dependency_map/{model}/{sequence}/ndm_{chromosome}_{start}_{end}.{format}",
-#     script:
-#         "scripts/display_dependency_map.py"
+rule display_dependency_map:
+    input:
+        "output/download_fasta/{sequence}.fna.gz",
+        "output/compute_dependency_map/{model}/{sequence}/{chromosome}/seq_{seq_start}-{seq_end}.parquet",
+    output:
+        "output/display_dependency_map/{model}/{sequence}/{chromosome}/seq_{seq_start}-{seq_end}/dp_{map_start}-{map_end}.{format}",
+    script:
+        "scripts/display_dependency_map.py"
