@@ -28,7 +28,7 @@ apptainer instance start devenv.sif devenv-instance-1
 ## Get interactive node with some GPUS
 
 ```sh
-srun -p interactive --time=2:00:00 --mem=100gb -G 2 --pty /bin/bash
+srun -p interactive --time=2:00:00 --mem=100gb -G 2 --ntasks=2 --cpus-per-task=8 --pty /bin/bash
 ```
 
 Run apptainer with [`--nv` flag](https://apptainer.org/docs/user/main/gpu.html) to make cuda and graphics cards accessible.
@@ -51,7 +51,7 @@ jupyter notebook --no-browser --port 9999
 
 Setup portforwarding of compute node via login node to local machine in new shell. (https://people.cs.umass.edu/~kexiao/posts/jupyter_notebook_remote_slurm.html)
 ```sh
-ssh -t -t sbuedenb@ramses -L 9999:localhost:8008 ssh ramses15229 -L 8008:localhost:10001
+ssh -t -t sbuedenb@ramses -L 9999:localhost:8008 ssh ramses15229 -L 8008:localhost:9999
 ```
 
 ## Spike: Make a NDM from GPN
@@ -98,6 +98,12 @@ srun --pty bash
 > --ntasks => "cores"
 > --cpus-per-task => "threads"
 > -G 1 => "GPUs"
+
+
+check time left on slurm job
+```bash
+squeue -h -j $SLURM_JOBID -o %L
+```
 
 
 ## Problems
