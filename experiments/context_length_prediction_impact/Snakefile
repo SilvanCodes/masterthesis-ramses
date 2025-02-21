@@ -1,0 +1,84 @@
+configfile: "config.yaml"
+
+
+rule all:
+    input:
+        expand(
+            "output/display_stacked_probability_chart/{model}/{chromosome}/{position}/stacked_probability_chart.png",
+            model=config["MODEL"],
+            chromosome=config["CHROMOSOME"],
+            position=config["MASKED_POSITION"],
+        ),
+        expand(
+            "output/display_stacked_variance_chart/{model}/{chromosome}/{position}/stacked_variance_chart.png",
+            model=config["MODEL"],
+            chromosome=config["CHROMOSOME"],
+            position=config["MASKED_POSITION"],
+        ),
+        expand(
+            "output/display_chromosome_boxplot/{model}/{chromosome}/chromosome_boxplot.png",
+            model=config["MODEL"],
+            chromosome=config["CHROMOSOME"],
+        ),
+
+
+rule download_fasta:
+    output:
+        "output/download_fasta/{chromosome}.fasta",
+    params:
+        id=lambda wildcards: wildcards.chromosome,
+        db="nuccore",
+        format="fasta",
+    wrapper:
+        "v5.8.2/bio/entrez/efetch"
+
+
+rule compute_probabilities_per_context_length:
+    input:
+        "output/download_fasta/{chromosome}.fasta",
+    params:
+        model=lambda wildcards: wildcards.model,
+    output:
+        "output/compute_probabilities_per_context_length/{model}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+    script:
+        "scripts/compute_probabilities_per_context_length.py"
+
+
+rule compute_statistics_over_chromosome:
+    input:
+        "output/download_fasta/{chromosome}.fasta",
+    params:
+        model=lambda wildcards: wildcards.model,
+    output:
+        "output/compute_statistics_over_chromosome/{model}/{chromosome}/statistics_over_chromosome.parquet",
+    script:
+        "scripts/compute_statistics_over_chromosome.py"
+
+
+rule display_chromosome_boxplot:
+    input:
+        "output/compute_statistics_over_chromosome/{model}/{chromosome}/statistics_over_chromosome.parquet",
+    output:
+        "output/display_chromosome_boxplot/{model}/{chromosome}/chromosome_boxplot.{format}",
+    script:
+        "scripts/display_chromosome_boxplot.py"
+
+
+rule display_stacked_probability_chart:
+    input:
+        "output/download_fasta/{chromosome}.fasta",
+        "output/compute_probabilities_per_context_length/{model}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+    output:
+        "output/display_stacked_probability_chart/{model}/{chromosome}/{position}/stacked_probability_chart.{format}",
+    script:
+        "scripts/display_stacked_probability_chart.py"
+
+
+rule display_stacked_variance_chart:
+    input:
+        "output/download_fasta/{chromosome}.fasta",
+        "output/compute_probabilities_per_context_length/{model}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+    output:
+        "output/display_stacked_variance_chart/{model}/{chromosome}/{position}/stacked_variance_chart.{format}",
+    script:
+        "scripts/display_stacked_variance_chart.py"
