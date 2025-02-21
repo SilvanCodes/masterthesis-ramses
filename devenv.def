@@ -1,11 +1,12 @@
 Bootstrap: docker
-From: python:3.12.0
+From: continuumio/miniconda3
 
 %files
     ./requirements.txt /opt
 
 %post
-    apt-get update && apt-get install -y vcftools
+    conda config --set channel_priority strict
+    apt-get update && apt-get install -y build-essential vcftools graphviz
     pip install -r /opt/requirements.txt
 
 %startscript
