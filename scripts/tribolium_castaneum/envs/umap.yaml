@@ -1,0 +1,9 @@
+
+name: umap_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pyarrow=19.0.1
+  - pandas=2.2.3
+  - umap-learn=0.5.7

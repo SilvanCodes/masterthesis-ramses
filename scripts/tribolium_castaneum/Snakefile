@@ -1,0 +1,229 @@
+conda:
+    "envs/global.yaml"
+
+configfile: "config.yaml"
+
+
+localrules:
+    download_reference,
+    download_annotation,
+    all,
+
+# set to WANDB_MODE=disabled when not using it
+envvars: "WANDB_MODE"
+
+
+import pandas as pd
+from Bio import SeqIO
+import gzip
+import bioframe as bf
+from gpn.data import load_table, Genome, filter_length, make_windows
+import more_itertools
+
+
+WINDOW_SIZE = config["window_size"]
+EMBEDDING_WINDOW_SIZE = 100
+
+
+models = [
+    "gonzalobenegas/gpn-brassicales",
+]
+
+
+rule all:
+    input:
+        expand("output/embedding/umap/{model}.parquet", model=models),
+
+
+rule download_reference:
+    output:
+        "output/genome.fa.gz",
+    shell:
+        "wget --no-check-certificate {config[FASTA_URL]} -O {output}"
+
+
+rule download_annotation:
+    output:
+        "output/annotation.gtf.gz",
+    shell:
+        "wget --no-check-certificate {config[GTF_URL]} -O {output}"
+
+
+rule mask_repeats:
+    input:
+        "output/genome.fa.gz",
+    output:
+        "output/mask_repeats/genome.fa.out.gff",
+    conda:
+        "envs/repeatmasker.yaml"
+    threads: workflow.cores
+    shell:
+        "RepeatMasker -species Tribolium_castaneum -dir output/mask_repeats -pa {threads} -gff {input}"
+
+
+rule expand_annotation:
+    input:
+        "output/annotation.gtf.gz",
+        # "output/mask_repeats/genome.fa.out.gff",
+    output:
+        "output/annotation.expanded.parquet",
+    run:
+        gtf = load_table(input[0])
+
+      
+        genic_features = [
+            "gene",
+            "mRNA",
+            "transcript",
+            "lnc_RNA",
+            "primary_transcript",
+            "pseudogene",
+            "tRNA",
+            "snRNA",
+            "miRNA",
+            "rRNA",
+            "snoRNA",
+            "ncRNA",
+            "piRNA",
+            "cDNA_match",
+        ]
+
+        # Many GTF files include rows with feature "region" covering entire chromosomes.
+        chrom_regions = gtf[gtf.feature == "region"][["chrom", "start", "end"]]
+
+        # 2. Extract all intervals that represent genes or transcripts.
+        genic_intervals = gtf[gtf.feature.isin(genic_features)][
+            ["chrom", "start", "end"]
+        ]
+
+        # Merge overlapping genic intervals to form the union of all genic regions.
+        genic_intervals = bf.merge(genic_intervals)
+
+        # 3. Subtract the genic intervals from the full chromosome intervals
+        # to get intergenic regions.
+        intergenic = bf.subtract(chrom_regions, genic_intervals)
+
+        # Tag these intervals as "intergenic"
+        intergenic["feature"] = "intergenic"
+
+
+        gtf = pd.concat([gtf, intergenic], ignore_index=True)
+
+
+        gtf_exon = gtf[gtf.feature == "exon"]
+        gtf_exon["transcript_id"] = gtf_exon.attribute.str.extract(
+            r"(?<=ID=exon-)(.*?)(?=-\d+;)"
+        )
+
+
+        def get_transcript_introns(df_transcript):
+            df_transcript = df_transcript.sort_values("start")
+            exon_pairs = more_itertools.pairwise(
+                df_transcript.loc[:, ["start", "end"]].values
+            )
+            introns = [[e1[1], e2[0]] for e1, e2 in exon_pairs]
+            introns = pd.DataFrame(introns, columns=["start", "end"])
+            introns["chrom"] = df_transcript.chrom.iloc[0]
+            return introns
+
+
+        gtf_introns = (
+            gtf_exon.groupby("transcript_id")
+            .apply(get_transcript_introns)
+            .reset_index()
+            .drop_duplicates(subset=["chrom", "start", "end"])
+        )
+        gtf_introns["feature"] = "intron"
+        gtf = pd.concat([gtf, gtf_introns], ignore_index=True)
+        gtf.to_parquet(output[0], index=False)
+
+
+rule define_embedding_windows:
+    input:
+        "output/annotation.expanded.parquet",
+        "output/genome.fa.gz",
+    output:
+        "output/embedding/windows.parquet",
+    run:
+        gtf = pd.read_parquet(input[0])
+        genome = Genome(input[1])
+        # genome.filter_chroms(["1", "2", "3", "4", "5"])
+        defined_intervals = genome.get_defined_intervals()
+        defined_intervals = filter_length(defined_intervals, WINDOW_SIZE)
+        windows = make_windows(defined_intervals, WINDOW_SIZE, EMBEDDING_WINDOW_SIZE)
+        windows.rename(columns={"start": "full_start", "end": "full_end"}, inplace=True)
+
+        windows["start"] = (
+            windows.full_start + windows.full_end
+        ) // 2 - EMBEDDING_WINDOW_SIZE // 2
+        windows["end"] = windows.start + EMBEDDING_WINDOW_SIZE
+
+        features_of_interest = [
+            "intergenic",
+            "CDS",
+            "intron",
+            # "three_prime_UTR",
+            # "five_prime_UTR",
+            # "ncRNA_gene",
+            # "Repeat",
+        ]
+
+        for f in features_of_interest:
+            print(f)
+            windows = bf.coverage(windows, gtf[gtf.feature == f])
+            windows.rename(columns=dict(coverage=f), inplace=True)
+
+            # we keep if the center 100 bp are exactly covered by just on of the region of interest
+        windows = windows[
+            (windows[features_of_interest] == EMBEDDING_WINDOW_SIZE).sum(axis=1) == 1
+        ]
+        windows["Region"] = windows[features_of_interest].idxmax(axis=1)
+        windows.drop(columns=features_of_interest, inplace=True)
+
+        windows.rename(
+            columns={"start": "center_start", "end": "center_end"}, inplace=True
+        )
+        windows.rename(columns={"full_start": "start", "full_end": "end"}, inplace=True)
+        print(windows)
+        windows.to_parquet(output[0], index=False)
+
+
+rule get_embeddings:
+    input:
+        "output/embedding/windows.parquet",
+        "output/genome.fa.gz",
+    output:
+        "output/embedding/embeddings/{model}.parquet",
+    conda:
+        "envs/gpn.yaml"
+    threads: workflow.cores
+    resources:
+        slurm_extra="-G 2"
+    shell:
+        """
+        python -m gpn.ss.get_embeddings {input} {EMBEDDING_WINDOW_SIZE} \
+        {wildcards.model} {output} --per_device_batch_size 4000 --is_file \
+        --dataloader_num_workers {threads}
+        """
+
+rule run_umap:
+    input:
+        "{anything}/embeddings/{model}.parquet",
+    output:
+        "{anything}/umap/{model}.parquet",
+    conda:
+        "envs/umap.yaml"
+    script:
+        "scripts/umap.py"
+    # run:
+    #     from umap import UMAP
+
+    #     embeddings = pd.read_parquet(input[0])
+    #     proj = Pipeline(
+    #         [
+    #             ("scaler", StandardScaler()),
+    #             ("umap", UMAP(random_state=42, verbose=True)),
+    #         ]
+    #     ).fit_transform(embeddings)
+    #     proj = pd.DataFrame(proj, columns=["UMAP1", "UMAP2"])
+    #     proj.to_parquet(output[0], index=False)
