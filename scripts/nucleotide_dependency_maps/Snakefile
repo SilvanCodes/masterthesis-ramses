@@ -22,17 +22,19 @@ rule all:
 
 
 rule download_fasta:
-    params:
-        url=lambda wildcards: config["FASTA_URL"].get(wildcards.sequence),
     output:
-        "output/download_fasta/{sequence}.fna.gz",
-    shell:
-        "wget --no-check-certificate {params.url} -O {output}"
+        "output/download_fasta/{sequence}.fna",
+    params:
+        id=lambda wildcards: wildcards.sequence,
+        db="nuccore",
+        format="fasta",
+    wrapper:
+        "v5.8.2/bio/entrez/efetch"
 
 
 rule compute_dependency_map:
     input:
-        "output/download_fasta/{sequence}.fna.gz",
+        "output/download_fasta/{sequence}.fna",
     params:
         model=lambda wildcards: wildcards.model,
     output:
@@ -43,7 +45,7 @@ rule compute_dependency_map:
 
 rule display_dependency_map:
     input:
-        "output/download_fasta/{sequence}.fna.gz",
+        "output/download_fasta/{sequence}.fna",
         "output/compute_dependency_map/{model}/{sequence}/{chromosome}/seq_{seq_start}-{seq_end}.parquet",
     output:
         "output/display_dependency_map/{model}/{sequence}/{chromosome}/seq_{seq_start}-{seq_end}/dp_{map_start}-{map_end}.{format}",

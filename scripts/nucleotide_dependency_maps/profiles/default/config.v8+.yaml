@@ -1,0 +1,2 @@
+software-deployment-method: conda
+conda-prefix: /scratch/sbuedenb/snakemake
