@@ -163,7 +163,7 @@ rule get_embeddings:
         "envs/gpn.yaml"
     threads: workflow.cores
     resources:
-        slurm_extra="-G 2"
+        slurm_extra="-G h100:1"
     shell:
         """
         python -m gpn.ss.get_embeddings {input} {EMBEDDING_WINDOW_SIZE} \
