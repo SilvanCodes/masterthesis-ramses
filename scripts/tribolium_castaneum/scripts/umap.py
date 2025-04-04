@@ -1,5 +1,7 @@
 import pandas as pd
 from umap import UMAP
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 embeddings = pd.read_parquet(snakemake.input[0])
 proj = Pipeline(
