@@ -1,12 +1,12 @@
-conda:
-    "envs/global.yaml"
-
 configfile: "config.yaml"
+conda: "envs/global.yaml"
 
 
 localrules:
     download_reference,
     download_annotation,
+    download_utr_script,
+    add_utr_to_annotation,
     all,
 
 # set to WANDB_MODE=disabled when not using it
@@ -48,6 +48,23 @@ rule download_annotation:
     shell:
         "wget --no-check-certificate {config[GTF_URL]} -O {output}"
 
+rule download_utr_script:
+    params:
+        url = "https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/add_utrs_to_gff/add_utrs_to_gff.py"
+    output:
+        "output/add_utrs_to_gff.py",
+    shell:
+        "wget --no-check-certificate {params.url} -O {output}"
+
+rule add_utr_to_annotation:
+    input:
+        "output/add_utrs_to_gff.py",
+        "output/annotation.gtf.gz",
+    output:
+        "output/annotation_utr.gtf",
+    shell:
+        "python {input} > {output}"
+
 
 rule mask_repeats:
     input:
@@ -63,7 +80,7 @@ rule mask_repeats:
 
 rule expand_annotation:
     input:
-        "output/annotation.gtf.gz",
+        "output/annotation_utr.gtf",
         # "output/mask_repeats/genome.fa.out.gff",
     output:
         "output/annotation.expanded.parquet",
