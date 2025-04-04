@@ -1,0 +1,20 @@
+
+name: notebook_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.11
+  - bioframe
+  - matplotlib
+  - pyarrow
+  - pandas
+  - numpy
+  - seaborn
+  - tqdm
+  - umap-learn[plot]=0.5.7
+  - jupyterlab
+  - pip
+  - pip:
+    - git+https://github.com/songlab-cal/gpn.git@main
