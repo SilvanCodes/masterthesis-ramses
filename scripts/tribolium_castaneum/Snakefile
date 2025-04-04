@@ -99,7 +99,20 @@ rule define_embedding_windows:
     run:
         gtf = pd.read_parquet(input[0])
         genome = Genome(input[1])
-        # genome.filter_chroms(["1", "2", "3", "4", "5"])
+        genome.filter_chroms([
+            "NC_087394.1",
+            "NC_087395.1",
+            "NC_087396.1",
+            "NC_087397.1",
+            "NC_087398.1",
+            "NC_087399.1",
+            "NC_087400.1",
+            "NC_087401.1",
+            "NC_087402.1",
+            "NC_087403.1",
+            "NC_087404.1",
+            # "NC_003081.2"
+        ])
         defined_intervals = genome.get_defined_intervals()
         defined_intervals = filter_length(defined_intervals, WINDOW_SIZE)
         windows = make_windows(defined_intervals, WINDOW_SIZE, EMBEDDING_WINDOW_SIZE)
@@ -114,9 +127,9 @@ rule define_embedding_windows:
             "intergenic",
             "CDS",
             "intron",
-            # "three_prime_UTR",
-            # "five_prime_UTR",
-            # "ncRNA_gene",
+            "three_prime_UTR",
+            "five_prime_UTR",
+            "ncRNA_gene",
             # "Repeat",
         ]
 
