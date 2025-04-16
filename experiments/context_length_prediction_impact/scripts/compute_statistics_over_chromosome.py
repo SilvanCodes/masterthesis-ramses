@@ -1,65 +1,47 @@
-import random
-
-import helpers
+import stats_helpers
 import pandas as pd
-import torch
 from tqdm import tqdm
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-
-# gpn specific model configuration
-import gpn.model
-from gpn.data import load_fasta
-
-print(f"GPU Model: {torch.cuda.get_device_name(0)}")
-
-model_path = snakemake.params.model
-
-# load tokenizer
-tokenizer = AutoTokenizer.from_pretrained(model_path)
-print(f"tokenizer vocabulary: {tokenizer.get_vocab()}")
-
-# load model
-model = AutoModelForMaskedLM.from_pretrained(model_path)
-device = "cuda"
-model.to(device)
-model.eval()
+from snakemake.script import snakemake
+import gffutils
 
 # load config
-chromosome = snakemake.config["CHROMOSOME"]
-random_position_count = snakemake.config["RANDOM_POSITION_COUNT"]
-max_context_length = snakemake.config["MAXIMUM_CONTEXT_LENGTH"]
 prediction_variance_window_size = snakemake.config["PREDICTION_VARIANCE_WINDOW_SIZE"]
 prediction_variance_threshold = float(snakemake.config["PREDICTION_VARIANCE_THRESHOLD"])
 
-# load sequence
-sequence_path = snakemake.input[0]
-genome = load_fasta(sequence_path)
-sequence = genome[chromosome]
+chromosome = snakemake.wildcards.chromosome
+
+# load annotation db
+db = gffutils.FeatureDB(snakemake.input.annotation_db)
 
 
-gap = max_context_length // 2
+def get_position_feature_type(position, chrom=chromosome):
+    overlapping_features = list(db.region(seqid=chrom, start=position, end=position))
+    if not overlapping_features:
+        return "unknown"
+    overlapping_features.sort(key=lambda f: f.end - f.start + 1)
+    return overlapping_features[0].featuretype
 
-random_positions = random.sample(range(gap, len(sequence) - gap), random_position_count)
 
 threshold_steps = []
+positions = []
 
-for i in tqdm(random_positions, desc="Random Position", position=0):
-    results = helpers.compute_context_length_dependency(
-        model,
-        tokenizer,
-        sequence,
-        i,
-        max_context_length=max_context_length,
-    )
+for df_path in tqdm(snakemake.input.position_data, desc="Random Position", position=0):
+    results = pd.read_parquet(df_path)
+
+    position = int(df_path.split("/")[-2])
+
+    positions.append(position)
+
     threshold_steps.append(
-        helpers.find_context_size_step_with_total_prediction_variance_below_threshold(
+        stats_helpers.find_context_size_step_with_total_prediction_variance_below_threshold(
             results,
             window_size=prediction_variance_window_size,
             threshold=prediction_variance_threshold,
         )
     )
 
-df = pd.DataFrame(
-    {"random_positions": random_positions, "threshold_steps": threshold_steps}
-)
+df = pd.DataFrame({"position": positions, "threshold_steps": threshold_steps})
+
+df["feature"] = df["position"].map(get_position_feature_type)
+
 df.to_parquet(snakemake.output[0])

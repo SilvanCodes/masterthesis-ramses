@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import torch
 from tqdm import tqdm
@@ -68,7 +69,6 @@ def compute_context_length_dependency(
             0, half, :
         ]
 
-    # Convert dictionary to DataFrame all at once
     results = pd.DataFrame(results_dict, index=["a", "c", "g", "t"])
 
     return results.T
@@ -82,8 +82,23 @@ def rolling_variance(results, window_size=100):
 def find_context_size_step_with_total_prediction_variance_below_threshold(
     results, window_size=100, threshold=1e-5
 ):
-    rolling_var = rolling_variance(results, window_size)
+    rolling_var = rolling_variance(results, window_size=window_size)
     return rolling_var.index[rolling_var.sum(axis=1) < threshold].min()
+
+
+def compute_gpn_score(reference_nucleotide, probabilities_per_context_length):
+
+    reference_nucleotide = reference_nucleotide.lower()
+
+    nucleotides = ["a", "c", "g", "t"]
+    alternatives = [n for n in nucleotides if n != reference_nucleotide]
+
+    gpn_scores = probabilities_per_context_length
+
+    for alt in alternatives:
+        gpn_scores[f"gpn_{alt}"] = gpn_scores[alt] / gpn_scores[reference_nucleotide]
+
+    gpn_scores = np.log2(gpn_scores).drop(nucleotides, axis=1)
 
 
 def plot_stacked_area(
@@ -93,7 +108,7 @@ def plot_stacked_area(
     title="Stacked Area Chart",
     xlabel="X-axis",
     ylabel="Y-axis",
-    colors=None,
+    marker=None,
 ):
     """
     Plots a stacked area chart from a Pandas DataFrame.
@@ -106,13 +121,13 @@ def plot_stacked_area(
     - colors: Optional list of colors for the areas.
     """
     plt.figure(figsize=(10, 6))
-    df.plot(
-        kind="area",
-        stacked=True,
-        alpha=0.7,
-        colormap="viridis" if colors is None else None,
-        color=colors,
-    )
+    df.plot(kind="area", stacked=True, alpha=0.7, colormap="viridis")
+
+    print(marker)
+    if marker:
+        plt.axvline(
+            x=marker, color="red", linestyle="-", linewidth=1, label="threshold"
+        )
 
     plt.title(title, fontsize=14)
     plt.xlabel(xlabel, fontsize=12)
@@ -131,10 +146,31 @@ def boxplot(
     title="Boxplot",
     xlabel="X-axis",
     ylabel="Y-axis",
+    y_col="threshold_steps",
+    x_col="feature",
 ):
     # Create the box plot
-    plt.figure(figsize=(8, 5))
-    sns.boxplot(y=data, color="skyblue")
+    plt.figure(figsize=(12, 5))
+    ax = sns.boxplot(data=data, y=y_col, x=x_col, color="skyblue")
+
+    sample_sizes = data[x_col].value_counts().sort_index()
+
+    # Add the sample size annotations
+    for i, category in enumerate(ax.get_xticklabels()):
+        category_name = category.get_text()
+        if category_name in sample_sizes:
+            y_pos = data[data[x_col] == category_name][y_col].mean()
+            y_pos = y_pos - (data[y_col].max() - data[y_col].min()) * 0.03
+
+            # Add the annotation
+            ax.text(
+                i,
+                y_pos,
+                f"n={sample_sizes[category_name]}",
+                horizontalalignment="center",
+                size="medium",
+                color="navy",
+            )
 
     # Add labels and title
     plt.title(title, fontsize=14)

@@ -1,84 +1,252 @@
 configfile: "config.yaml"
 
 
+conda: "envs/global.yaml"
+
+
+localrules:
+    download_ncbi_dataset,
+    unpack_ncbi_dataset,
+    compute_gpn_per_context_length,
+    display_chromosome_boxplot,
+    display_stacked_probability_chart,
+    display_stacked_variance_chart,
+    display_stacked_gpn_variance_chart,
+    display_gpn_chromosome_boxplot,
+    generate_random_sample_positions,
+
+
+def all_random_positions(wildcards):
+    import json
+
+    with open(
+        f'output/generate_random_sample_positions/{config["ACCESSION"]}/{config["CHROMOSOME"]}/positions.json'
+    ) as f:
+        random_positions = json.load(f)
+    return random_positions
+
+
 rule all:
     input:
+        # expand(
+        #     "output/display_stacked_probability_chart/{model}/{accession}/{chromosome}/{position}/stacked_probability_chart.png",
+        #     model=config["MODEL"],
+        #     accession=config["ACCESSION"],
+        #     chromosome=config["CHROMOSOME"],
+        #     position=[694461, 816031, 2636416],
+        # ),
+        # expand(
+        #     "output/display_stacked_variance_chart/{model}/{accession}/{chromosome}/{position}/stacked_variance_chart.png",
+        #     model=config["MODEL"],
+        #     accession=config["ACCESSION"],
+        #     chromosome=config["CHROMOSOME"],
+        #     position=[694461, 816031, 2636416],
+        # ),
+        # expand(
+        #     "output/display_stacked_gpn_variance_chart/{model}/{accession}/{chromosome}/{position}/stacked_gpn_variance_chart.png",
+        #     model=config["MODEL"],
+        #     accession=config["ACCESSION"],
+        #     chromosome=config["CHROMOSOME"],
+        #     position=config["MASKED_POSITION"],
+        # ),
+        # expand(
+        #     "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+        #     model=config["MODEL"],
+        #     accession=config["ACCESSION"],
+        #     chromosome=config["CHROMOSOME"],
+        #     position=all_random_positions,
+        # ),
         expand(
-            "output/display_stacked_probability_chart/{model}/{chromosome}/{position}/stacked_probability_chart.png",
+            "output/display_chromosome_boxplot/{model}/{accession}/{chromosome}/chromosome_boxplot.png",
             model=config["MODEL"],
+            accession=config["ACCESSION"],
             chromosome=config["CHROMOSOME"],
-            position=config["MASKED_POSITION"],
         ),
         expand(
-            "output/display_stacked_variance_chart/{model}/{chromosome}/{position}/stacked_variance_chart.png",
+            "output/display_gpn_chromosome_boxplot/{model}/{accession}/{chromosome}/gpn_chromosome_boxplot.png",
             model=config["MODEL"],
-            chromosome=config["CHROMOSOME"],
-            position=config["MASKED_POSITION"],
-        ),
-        expand(
-            "output/display_chromosome_boxplot/{model}/{chromosome}/chromosome_boxplot.png",
-            model=config["MODEL"],
+            accession=config["ACCESSION"],
             chromosome=config["CHROMOSOME"],
         ),
 
 
-rule download_fasta:
+rule download_ncbi_dataset:
     output:
-        "output/download_fasta/{chromosome}.fasta",
+        "output/download_ncbi_dataset/{accession}.zip",
+    shell:
+        "datasets download genome accession {wildcards.accession} --include genome,gff3 --filename {output}"
+
+
+rule unpack_ncbi_dataset:
+    input:
+        "output/download_ncbi_dataset/{accession}.zip",
+    output:
+        "output/unpack_ncbi_dataset/{accession}/genome.fna",
+        "output/unpack_ncbi_dataset/{accession}/annotation.gff",
     params:
-        id=lambda wildcards: wildcards.chromosome,
-        db="nuccore",
-        format="fasta",
-    wrapper:
-        "v5.8.2/bio/entrez/efetch"
+        data_path="/tmp/ncbi_dataset/data",
+    shell:
+        "unzip {input} -d /tmp"
+        " && genome_path=$(cat {params.data_path}/dataset_catalog.json | jq -r '.assemblies[1].files | .[] | select(.fileType==\"GENOMIC_NUCLEOTIDE_FASTA\").filePath')"
+        " && annotation_path=$(cat {params.data_path}/dataset_catalog.json | jq -r '.assemblies[1].files | .[] | select(.fileType==\"GFF3\").filePath')"
+        " && mv {params.data_path}/$genome_path {output[0]}"
+        " && mv {params.data_path}/$annotation_path {output[1]}"
+
+
+# rule download_utr_script:
+#     params:
+#         url="https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/add_utrs_to_gff/add_utrs_to_gff.py",
+#     output:
+#         "output/download_utr_script/add_utrs_to_gff.py",
+#     shell:
+#         "wget --no-check-certificate {params.url} -O {output}"
+
+
+# rule add_utr_to_annotation:
+#     input:
+#         "output/download_utr_script/add_utrs_to_gff.py",
+#         "output/unpack_ncbi_dataset/{accession}/annotation.gff",
+#     output:
+#         "output/add_utr_to_annotation/{accession}/annotation_utr.gtf",
+#     shell:
+#         "python {input} > {output}"
+
+
+rule create_annotation_db:
+    input:
+        "output/unpack_ncbi_dataset/{accession}/annotation.gff",
+    output:
+        "output/create_annotation_db/{accession}/annotation.db",
+    conda:
+        "envs/compute_statistics.yaml"
+    script:
+        "scripts/create_annotation_db.py"
 
 
 rule compute_probabilities_per_context_length:
     input:
-        "output/download_fasta/{chromosome}.fasta",
-    params:
-        model=lambda wildcards: wildcards.model,
+        "output/unpack_ncbi_dataset/{accession}/genome.fna",
     output:
-        "output/compute_probabilities_per_context_length/{model}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+        "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+    conda:
+        "envs/scripts.yaml"
+    resources:
+        slurm_extra="-G 1",
     script:
         "scripts/compute_probabilities_per_context_length.py"
 
 
+# rule compute_gpn_per_context_length:
+#     input:
+#         "output/unpack_ncbi_dataset/{accession}/genome.fna",
+#         "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+#     output:
+#         "output/compute_gpn_per_context_length/{model}/{accession}/{chromosome}/{position}/gpn_per_context_length.parquet",
+#     conda:
+#         "envs/scripts.yaml"
+#     script:
+#         "scripts/compute_gpn_per_context_length.py"
+
+
+rule generate_random_sample_positions:
+    input:
+        "output/unpack_ncbi_dataset/{accession}/genome.fna",
+    output:
+        "output/generate_random_sample_positions/{accession}/{chromosome}/positions.json",
+    conda:
+        "envs/scripts.yaml"
+    script:
+        "scripts/generate_random_sample_positions.py"
+
+
 rule compute_statistics_over_chromosome:
     input:
-        "output/download_fasta/{chromosome}.fasta",
-    params:
-        model=lambda wildcards: wildcards.model,
+        annotation_db="output/create_annotation_db/{accession}/annotation.db",
+        position_data=expand(
+            "output/compute_probabilities_per_context_length/{{model}}/{{accession}}/{{chromosome}}/{position}/probabilities_per_context_length.parquet",
+            position=all_random_positions,
+        ),
     output:
-        "output/compute_statistics_over_chromosome/{model}/{chromosome}/statistics_over_chromosome.parquet",
+        "output/compute_statistics_over_chromosome/{model}/{accession}/{chromosome}/statistics_over_chromosome.parquet",
+    conda:
+        "envs/compute_statistics.yaml"
     script:
         "scripts/compute_statistics_over_chromosome.py"
 
 
-rule display_chromosome_boxplot:
+rule compute_gpn_statistics_over_chromosome:
     input:
-        "output/compute_statistics_over_chromosome/{model}/{chromosome}/statistics_over_chromosome.parquet",
+        sequence="output/unpack_ncbi_dataset/{accession}/genome.fna",
+        annotation_db="output/create_annotation_db/{accession}/annotation.db",
+        position_data=expand(
+            "output/compute_probabilities_per_context_length/{{model}}/{{accession}}/{{chromosome}}/{position}/probabilities_per_context_length.parquet",
+            position=all_random_positions,
+        ),
     output:
-        "output/display_chromosome_boxplot/{model}/{chromosome}/chromosome_boxplot.{format}",
+        "output/compute_gpn_statistics_over_chromosome/{model}/{accession}/{chromosome}/gpn_statistics_over_chromosome.parquet",
+    conda:
+        "envs/compute_statistics.yaml"
+    script:
+        "scripts/compute_gpn_statistics_over_chromosome.py"
+
+
+rule display_chromosome_boxplot:
+    params:
+        title="Context size with prediction influence",
+    input:
+        "output/compute_statistics_over_chromosome/{model}/{accession}/{chromosome}/statistics_over_chromosome.parquet",
+    output:
+        "output/display_chromosome_boxplot/{model}/{accession}/{chromosome}/chromosome_boxplot.{format}",
+    conda:
+        "envs/scripts.yaml"
+    script:
+        "scripts/display_chromosome_boxplot.py"
+
+
+rule display_gpn_chromosome_boxplot:
+    params:
+        title="Context size with GPN-score influence",
+    input:
+        "output/compute_gpn_statistics_over_chromosome/{model}/{accession}/{chromosome}/gpn_statistics_over_chromosome.parquet",
+    output:
+        "output/display_gpn_chromosome_boxplot/{model}/{accession}/{chromosome}/gpn_chromosome_boxplot.{format}",
+    conda:
+        "envs/scripts.yaml"
     script:
         "scripts/display_chromosome_boxplot.py"
 
 
 rule display_stacked_probability_chart:
     input:
-        "output/download_fasta/{chromosome}.fasta",
-        "output/compute_probabilities_per_context_length/{model}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+        "output/unpack_ncbi_dataset/{accession}/genome.fna",
+        "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
     output:
-        "output/display_stacked_probability_chart/{model}/{chromosome}/{position}/stacked_probability_chart.{format}",
+        "output/display_stacked_probability_chart/{model}/{accession}/{chromosome}/{position}/stacked_probability_chart.{format}",
+    conda:
+        "envs/scripts.yaml"
     script:
         "scripts/display_stacked_probability_chart.py"
 
 
 rule display_stacked_variance_chart:
     input:
-        "output/download_fasta/{chromosome}.fasta",
-        "output/compute_probabilities_per_context_length/{model}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+        "output/unpack_ncbi_dataset/{accession}/genome.fna",
+        "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
     output:
-        "output/display_stacked_variance_chart/{model}/{chromosome}/{position}/stacked_variance_chart.{format}",
+        "output/display_stacked_variance_chart/{model}/{accession}/{chromosome}/{position}/stacked_variance_chart.{format}",
+    conda:
+        "envs/scripts.yaml"
+    script:
+        "scripts/display_stacked_variance_chart.py"
+
+
+rule display_stacked_gpn_variance_chart:
+    input:
+        "output/unpack_ncbi_dataset/{accession}/genome.fna",
+        "output/compute_gpn_per_context_length/{model}/{accession}/{chromosome}/{position}/gpn_per_context_length.parquet",
+    output:
+        "output/display_stacked_gpn_variance_chart/{model}/{accession}/{chromosome}/{position}/stacked_gpn_variance_chart.{format}",
+    conda:
+        "envs/scripts.yaml"
     script:
         "scripts/display_stacked_variance_chart.py"

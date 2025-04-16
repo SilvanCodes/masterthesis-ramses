@@ -1,0 +1,17 @@
+name: scripts_env
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - pandas
+  - numpy
+  - pytorch
+  - pytorch-cuda
+  - transformers
+  - tqdm
+  - matplotlib
+  - seaborn
+  - pip
+  - pip:
+    - git+https://github.com/songlab-cal/gpn.git@main

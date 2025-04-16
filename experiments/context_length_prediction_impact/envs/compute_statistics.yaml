@@ -1,0 +1,12 @@
+name: compute_statistics_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - gffutils
+  - pandas
+  - tqdm
+  - pip
+  - pip:
+    - git+https://github.com/songlab-cal/gpn.git@main

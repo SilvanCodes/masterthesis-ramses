@@ -1,0 +1,13 @@
+# https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html
+executor: slurm
+jobs: 10
+
+software-deployment-method: conda
+conda-prefix: /scratch/sbuedenb/snakemake
+
+
+default-resources:
+    slurm_partition: "gpu"
+    slurm_account: "ag-wiehe"
+    mem: "32gb"
+    runtime: 60

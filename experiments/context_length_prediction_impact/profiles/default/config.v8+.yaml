@@ -1,0 +1,4 @@
+jobs: 10
+
+conda-prefix: /scratch/sbuedenb/snakemake
+software-deployment-method: conda
