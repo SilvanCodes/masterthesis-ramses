@@ -1,0 +1,14 @@
+MODEL_PATH: "gonzalobenegas/gpn-brassicales"
+
+BATCH_SIZE: 128
+INCLUDED_CONTEXT: 512 #total count of bp symmetetrically around each predicted position
+
+# workflow assumes an <ACCESSION>.fna.gz file inside resources
+ACCESSION: "Lan3.1"
+CHROMOSOME: "chr3"
+
+# start computation from
+START_POSITION: 21886677
+
+# stop computation at
+STOP_POSITION: 22031473

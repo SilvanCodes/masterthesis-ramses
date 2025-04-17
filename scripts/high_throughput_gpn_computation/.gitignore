@@ -1,0 +1,6 @@
+.cache
+.conda
+.config
+.nv
+.snakemake
+.condarc

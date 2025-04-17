@@ -1,0 +1,7 @@
+jobs: 10
+
+software-deployment-method:
+  - conda
+  - apptainer
+apptainer-args: "--bind /scratch/sbuedenb --nv"
+conda-prefix: /scratch/sbuedenb/snakemake

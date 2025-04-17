@@ -1,0 +1,14 @@
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - pandas
+  - numpy
+  - pytorch
+  - pytorch-cuda
+  - transformers
+  - tqdm
+  - pip
+  - pip:
+    - git+https://github.com/songlab-cal/gpn.git@main

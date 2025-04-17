@@ -1,0 +1,18 @@
+configfile: "config/config.yaml"
+
+
+container: "docker://continuumio/miniconda3"
+
+
+include: "rules/compute_gpn.smk"
+
+
+rule all:
+    input:
+        expand(
+            "results/{accession}/{chromosome}/{start_position}_{stop_position}/gpn_scores.parquet",
+            accession=config["ACCESSION"],
+            chromosome=config["CHROMOSOME"],
+            start_position=config["START_POSITION"],
+            stop_position=config["STOP_POSITION"],
+        ),
