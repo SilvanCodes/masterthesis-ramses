@@ -10,9 +10,10 @@ MAXIMUM_CONTEXT_LENGTH: 2000
 # predictions have stabilized long term
 PREDICTION_VARIANCE_WINDOW_SIZE: 100
 
-# arbitrary value, intuited from statistical p-values: 1e-5
-# 0.01 should suffice and is properly interpretable: cumulative variance of prediction less than 1%
 PREDICTION_VARIANCE_THRESHOLD: 0.0001
 
 # number of uniform random samples to compute genome statistics
 RANDOM_POSITION_COUNT: 10000
+
+DISTRIBUTION_SHIFT_WINDOW_SIZE: 10
+DISTRIBUTION_SHIFT_THRESHOLD: 0.01

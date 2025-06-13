@@ -5,7 +5,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.11
+  - python=3.10
   - bioframe
   - matplotlib
   - pyarrow

@@ -9,5 +9,5 @@ conda-prefix: /scratch/sbuedenb/snakemake
 default-resources:
     slurm_partition: "gpu"
     slurm_account: "ag-wiehe"
-    mem: "32gb"
+    mem: "64gb"
     runtime: 60

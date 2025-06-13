@@ -26,3 +26,8 @@ def compute_gpn_score(reference_nucleotide, probabilities_per_context_length):
         gpn_scores[f"gpn_{alt}"] = gpn_scores[alt] / gpn_scores[reference_nucleotide]
 
     gpn_scores = np.log2(gpn_scores).drop(nucleotides, axis=1)
+
+def find_context_size_step_with_distribution_shift_below_threshold(results, window_size=10, threshold=0.01):
+    distribution_shift = results.diff().abs().sum(axis=1).div(2)[1:]
+    roll_avg_diff = distribution_shift[::-1].rolling(window=window_size, min_periods=1).mean()[::-1]
+    return roll_avg_diff.index[roll_avg_diff < threshold].min()

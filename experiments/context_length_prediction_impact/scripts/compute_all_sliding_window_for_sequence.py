@@ -8,10 +8,11 @@
 # p_x denotes the resulting gpn predicted probabilities
 # gpn_x denotes the gpn score w.r.t ref, the reference_nucleotide
 
+import numpy as np
 import pandas as pd
 from snakemake.script import snakemake
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-
+from tqdm import tqdm
 from datasets import Dataset
 from torch.utils.data import DataLoader
 import torch
@@ -39,13 +40,10 @@ device = "cuda"
 model.to(device)
 model.eval()
 
-
-results = []
-start_position = 256 + 1
-stop_position = 1000
-
-context_length = 512
-context_length_half = context_length // 2
+# start of HMA4-3
+start_position = 21886677
+# end of HMA4-1
+stop_position = 22031473
 
 
 def sliding_window_generator(
@@ -137,11 +135,10 @@ dataloader = DataLoader(
 all_predictions = []
 acgt_idxs = [tokenizer.get_vocab()[nuc] for nuc in ["a", "c", "g", "t"]]
 
-window_size = 5
+window_size = 513
 center = window_size // 2
 results = []
-
-for batch in dataloader:
+for batch in tqdm(dataloader, desc="Batch"):
     # print(batch)
     # batch_results = []
     # for i in range(len(batch["input_ids"])):
@@ -175,34 +172,24 @@ for batch in dataloader:
     # print(model(**batch))
     # print(model(input_ids=batch.to(device)).logits.cpu().to(torch.float32))
 
-print(all_predictions)
-pd.DataFrame(results)
+# print(all_predictions)
+results = pd.DataFrame(results)
 
+# convert all tensors to floats
+results = results.map(
+    lambda x: x.item() if torch.is_tensor(x) and x.numel() == 1 else x
+)
 
-for i in range(start_position, end_position + 1):
-    # Extract context sequence
-    context_sequence = sequence[i - context_length_half : i + context_length_half + 1]
+p_reference = [
+    row[col]
+    for row, col in zip(results.to_dict("records"), "p_" + results["reference"])
+]
 
-    # Compute GPN predicted probabilities and scores
-    probabilities = compute_gpn_probabilities(context_sequence)
-    scores = compute_gpn_score(sequence[i], probabilities)
+for alt in ["a", "c", "g", "t"]:
+    results["gpn_" + alt] = results["p_" + alt] / p_reference
 
-    # Append results to dataframe
-    results.append(
-        {
-            "position": i + 1,  # 1-indexed position
-            "ref": sequence[i],
-            "p_a": probabilities["A"],
-            "p_c": probabilities["C"],
-            "p_g": probabilities["G"],
-            "p_t": probabilities["T"],
-            "gpn_a": scores["A"],
-            "gpn_c": scores["C"],
-            "gpn_g": scores["G"],
-            "gpn_t": scores["T"],
-        }
-    )
+results[["gpn_a", "gpn_c", "gpn_g", "gpn_t"]] = np.log2(
+    results[["gpn_a", "gpn_c", "gpn_g", "gpn_t"]]
+)
 
-results_df = pd.DataFrame(results)
-
-results_df.to_parquet(snakemake.output[0])
+results.to_parquet(snakemake.output[0])

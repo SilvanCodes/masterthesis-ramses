@@ -22,7 +22,7 @@ sequence_path = snakemake.input[0]
 genome = load_fasta(sequence_path)
 sequence = genome[chromosome]
 
-title = f"Influence of context length (chr: {chromosome}, pos: {masked_position}, ref: {sequence[masked_position - 1]})"
+title = f"Influence of context length \n (chr: {chromosome}, pos: {masked_position}, ref: {sequence[masked_position - 1]})"
 
 threshold_step = (
     helpers.find_context_size_step_with_total_prediction_variance_below_threshold(

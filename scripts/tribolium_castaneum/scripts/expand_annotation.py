@@ -1,48 +1,56 @@
 import pandas as pd
 import bioframe as bf
+import re
+from gpn.data import load_fasta, load_table
 # from gtfparse import read_gtf
 
 
 # gtf = read_gtf(snakemake.input[0], expand_attribute_column=False)
 
-gtf = pd.read_csv(
-    snakemake.input[0],
-    sep="\t",
-    header=None,
-    comment="#",
-    dtype={"chrom": str},
-    names=[
-        "chrom",
-        "source",
-        "feature",
-        "start",
-        "end",
-        "score",
-        "strand",
-        "frame",
-        "attribute",
-    ],
-)
+gtf = load_table(snakemake.input[0])
 
-# why??? in gpn.data.load_table
-gtf.start -= 1
+genome = load_fasta(snakemake.input[1])
+
+# extract repeat regions from ref. genome
+for chrom in gtf.chrom.unique():
+    matches = list(re.finditer(r'[a-z]+', genome[chrom]))
+    stretches = [(m.start(), m.end()) for m in matches]
+    repeats = pd.DataFrame(
+        stretches, columns=["start", "end"], dtype="int64"
+    )
+    repeats["chrom"] = chrom
+    
+    repeats["feature"] = "Repeat"
+    repeats["source"] = "Derived"
+    repeats["strand"] = "+"
+    gtf = pd.concat([gtf, repeats], ignore_index=True)
 
 
 genic_features = [
-    # "gene",
+    "gene",
+    ### entirely covered from gene 
     # "mRNA",
-    "transcript",
+    # "CDS",
+    # "ncRNA",
+    # "transcript",
     # "lnc_RNA",
     # "primary_transcript",
-    # "pseudogene",
     # "tRNA",
     # "snRNA",
     # "miRNA",
     # "rRNA",
     # "snoRNA",
-    # "z",
     # "piRNA",
     # "cDNA_match",
+
+    ### partially covered from gene
+    "five_prime_UTR",
+    "three_prime_UTR",
+    "exon",
+    "pseudogene",
+
+    ### not conclusively genic
+    # "Repeat"
 ]
 
 chrom_regions = gtf[gtf.feature == "region"][["chrom", "start", "end"]]

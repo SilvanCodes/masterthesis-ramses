@@ -8,6 +8,7 @@ dependencies:
   - pytorch
   - pytorch-cuda
   - transformers
+  - biopython
   - tqdm
   - pip
   - pip:

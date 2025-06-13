@@ -4,11 +4,52 @@ BATCH_SIZE: 128
 INCLUDED_CONTEXT: 512 #total count of bp symmetetrically around each predicted position
 
 # workflow assumes an <ACCESSION>.fna.gz file inside resources
-ACCESSION: "Lan3.1"
-CHROMOSOME: "chr3"
+# ACCESSION: "Lan3.1"
+# CHROMOSOME: "chr3"
+
+REVERSE_COMPLEMENT:
+  [
+false,
+true,
+false,
+true,
+false,
+false,
+true,
+false,
+false,
+false]
 
 # start computation from
-START_POSITION: 21886677
+START_POSITION:
 
 # stop computation at
-STOP_POSITION: 22031473
+STOP_POSITION: 999999
+
+ACCESSION:
+  [
+    "BAC",
+    "Bors_12",
+    "Goli_08",
+    "Lan3.1",
+    "Lan5",
+    "Lan5_hap2",
+    "Pais_09",
+    "Rund_05_S1",
+    "Ukan_25",
+    "Wall_10",
+  ]
+
+CHROMOSOME:
+  [
+    "EU382073.1",
+    "h1tg000001l:1539155-1704685",
+    "h1tg000022l:224290-393930",
+    "chr3:21866677-22051473",
+    "Chr3:26654299-26831685",
+    "Chr3:23465017-23625889",
+    "h1tg000006l:1479490-1622324",
+    "tig00000673_chr3:1356930-1527379",
+    "h2tg000015l:6652465-6810532",
+    "tig00000401_chr3:6197730-6356479",
+  ]

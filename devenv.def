@@ -5,8 +5,9 @@ From: continuumio/miniconda3
     ./requirements.txt /opt
 
 %post
-    conda config --set channel_priority strict
+    # conda config --set channel_priority strict
     apt-get update && apt-get install -y build-essential vcftools graphviz
+    conda install python=3.11
     pip install -r /opt/requirements.txt
 
 %startscript

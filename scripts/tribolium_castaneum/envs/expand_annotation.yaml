@@ -8,3 +8,5 @@ dependencies:
   - bioframe=0.7.2
   - gtfparse=2.5.0
   # - pyarrow=19.0.1
+  - pip:
+    - git+https://github.com/songlab-cal/gpn.git@main

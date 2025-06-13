@@ -21,4 +21,6 @@ helpers.boxplot(
     snakemake.wildcards.format,
     title=snakemake.params.title,
     ylabel="Influential Context Size",
+    marker=512
+    # xlabel="Genomic Annotation"
 )

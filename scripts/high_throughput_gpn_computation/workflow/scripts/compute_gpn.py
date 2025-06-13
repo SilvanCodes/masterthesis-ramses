@@ -16,6 +16,9 @@ from tqdm import tqdm
 from datasets import Dataset
 from torch.utils.data import DataLoader
 import torch
+from Bio.Seq import Seq
+import warnings
+
 
 # gpn specific model configuration
 import gpn.model
@@ -45,13 +48,46 @@ start_position = int(snakemake.wildcards.start_position)
 # end of HMA4-1
 stop_position = int(snakemake.wildcards.stop_position)
 
+print(f"start_position: {start_position}")
+print(f"stop_position: {stop_position}")
+
+# Adjust start and stop positions to be within the sequence length
+start_position = max(1, start_position)
+stop_position = min(len(sequence), stop_position)
+
+print(f"start_position: {start_position}")
+print(f"stop_position: {stop_position}")
+
+if start_position != int(snakemake.wildcards.start_position):
+    warnings.warn(
+        f"start_position was adjusted to be within the sequence length, now: {start_position}"
+    )
+if stop_position != int(snakemake.wildcards.stop_position):
+    warnings.warn(
+        f"stop_position was adjusted to be within the sequence length, now: {stop_position}"
+    )
+
+if snakemake.config["REVERSE_COMPLEMENT"]:
+    warnings.warn(
+        "REVERSE_COMPLEMENT is set to True, the sequence will be reverse complemented"
+    )
+
 context_length = int(snakemake.config["INCLUDED_CONTEXT"])
 
 window_size = context_length + 1
 
+
+# print(f"start_position: {start_position}")
+# print(f"stop_position: {stop_position}")
+
+# print(f"sequence length: {len(sequence)}")
+# print(f"context_length: {context_length}")
+# print(f"window_size: {window_size}")
+
 assert start_position < stop_position
 
-assert stop_position - start_position < len(sequence) - context_length
+# would ensure all positions have equal context available
+# assert stop_position - start_position < len(sequence) - context_length
 
 
 def sliding_window_generator(
@@ -72,17 +108,35 @@ def sliding_window_generator(
 
     window_size_half = window_size // 2
 
-    assert start_position - window_size_half - 1 >= 0
-    assert stop_position + window_size_half - 1 <= seq_len
+    # condition has been relaxed by clipping the start and end positions inside loop
+    # assert start_position - window_size_half - 1 >= 0
+    # assert stop_position + window_size_half - 1 <= seq_len
 
     for position in range(start_position, stop_position + 1, step_size):
         # arrays are 0-indexed, genomes 1-indexed
         position = position - 1
 
-        start = int(position - window_size_half)
-        end = int(position + window_size_half + 1)
+        start = position - window_size_half
+        end = position + window_size_half + 1
 
-        sequence_window = sequence[start:end]
+        # Slice the actual sequence
+        sequence_window = sequence[max(start, 0) : min(end, seq_len)]
+
+        # Calculate how much padding is needed
+        left_pad = max(0, -start)
+        right_pad = max(0, end - seq_len)
+
+        # Pad with 'n' (ambiguous base) as needed
+        sequence_window = ("n" * left_pad) + sequence_window + ("n" * right_pad)
+
+        assert (
+            len(sequence_window) == window_size
+        ), f"Expected {window_size}, got {len(sequence_window)}"
+
+        # if snakemake.config["REVERSE_COMPLEMENT"]:
+
+        if snakemake.wildcards.reverse_complement == "rev":
+            sequence_window = str(Seq(sequence_window).reverse_complement())
 
         center = len(sequence_window) // 2
 
@@ -124,6 +178,7 @@ def collate_fn(batch):
         "position": [item["position"] for item in batch],
     }
 
+
 batch_size = int(snakemake.config["BATCH_SIZE"])
 
 dataloader = DataLoader(
@@ -134,7 +189,7 @@ dataloader = DataLoader(
 )
 
 # Process batches
-all_predictions = []
+# all_predictions = []
 acgt_idxs = [tokenizer.get_vocab()[nuc] for nuc in ["a", "c", "g", "t"]]
 
 center = window_size // 2
@@ -150,7 +205,7 @@ for batch in tqdm(dataloader, desc="Batch"):
     nucleotide_logits = all_logits[:, :, acgt_idxs]
     output_probs = torch.nn.functional.softmax(nucleotide_logits, dim=-1)
 
-    all_predictions.append(output_probs)
+    # all_predictions.append(output_probs)
 
     for i in range(len(batch["input_ids"])):
         results.append(
@@ -166,13 +221,18 @@ for batch in tqdm(dataloader, desc="Batch"):
 
 results = pd.DataFrame(results)
 
+# we kinda compute back to front when flipping to reverse complement so data is nicer to be understood when reverted here
+# if snakemake.config["REVERSE_COMPLEMENT"]:
+if snakemake.wildcards.reverse_complement == "rev":
+    results = results[::-1]
+
 # convert all tensors to floats
 results = results.map(
     lambda x: x.item() if torch.is_tensor(x) and x.numel() == 1 else x
 )
 
 p_reference = [
-    row[col]
+    row[col] if col != "p_n" else 0.0
     for row, col in zip(results.to_dict("records"), "p_" + results["reference"])
 ]
 

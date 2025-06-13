@@ -28,12 +28,19 @@ def all_random_positions(wildcards):
 
 rule all:
     input:
+        expand(
+            "output/display_stacked_probability_chart/{model}/{accession}/{chromosome}/{position}/stacked_probability_chart.png",
+            model=config["MODEL"],
+            accession=config["ACCESSION"],
+            chromosome=config["CHROMOSOME"],
+            position=[694461, 816031, 2636416],
+        ),
         # expand(
-        #     "output/display_stacked_probability_chart/{model}/{accession}/{chromosome}/{position}/stacked_probability_chart.png",
+        #     "output/display_distribution_shift_chart/{model}/{accession}/{chromosome}/{position}/distribution_shift_chart.png",
         #     model=config["MODEL"],
         #     accession=config["ACCESSION"],
         #     chromosome=config["CHROMOSOME"],
-        #     position=[694461, 816031, 2636416],
+        #     position=all_random_positions,
         # ),
         # expand(
         #     "output/display_stacked_variance_chart/{model}/{accession}/{chromosome}/{position}/stacked_variance_chart.png",
@@ -159,7 +166,7 @@ rule generate_random_sample_positions:
         "scripts/generate_random_sample_positions.py"
 
 
-rule compute_statistics_over_chromosome:
+rule compute_prediction_variance_over_chromosome:
     input:
         annotation_db="output/create_annotation_db/{accession}/annotation.db",
         position_data=expand(
@@ -167,11 +174,25 @@ rule compute_statistics_over_chromosome:
             position=all_random_positions,
         ),
     output:
-        "output/compute_statistics_over_chromosome/{model}/{accession}/{chromosome}/statistics_over_chromosome.parquet",
+        "output/compute_prediction_variance_over_chromosome/{model}/{accession}/{chromosome}/prediction_variance_over_chromosome.parquet",
     conda:
         "envs/compute_statistics.yaml"
     script:
-        "scripts/compute_statistics_over_chromosome.py"
+        "scripts/compute_prediction_variance_over_chromosome.py"
+
+rule compute_distribution_shift_over_chromosome:
+    input:
+        annotation_db="output/create_annotation_db/{accession}/annotation.db",
+        position_data=expand(
+            "output/compute_probabilities_per_context_length/{{model}}/{{accession}}/{{chromosome}}/{position}/probabilities_per_context_length.parquet",
+            position=all_random_positions,
+        ),
+    output:
+        "output/compute_distribution_shift_over_chromosome/{model}/{accession}/{chromosome}/distribution_shift_over_chromosome.parquet",
+    conda:
+        "envs/compute_statistics.yaml"
+    script:
+        "scripts/compute_distribution_shift_over_chromosome.py"
 
 
 rule compute_gpn_statistics_over_chromosome:
@@ -190,11 +211,25 @@ rule compute_gpn_statistics_over_chromosome:
         "scripts/compute_gpn_statistics_over_chromosome.py"
 
 
+rule compute_all_for_sequence:
+    input:
+        "data/Lan3.1.fna.gz",
+    output:
+        "output/compute_all_for_sequence/{model}/Lan3.1/{chromosome}/gpn_scores.parquet",
+    conda:
+        "envs/scripts.yaml"
+    resources:
+        slurm_extra="-G h100:1",
+    script:
+        "scripts/compute_all_sliding_window_for_sequence.py"
+
+
 rule display_chromosome_boxplot:
     params:
         title="Context size with prediction influence",
     input:
-        "output/compute_statistics_over_chromosome/{model}/{accession}/{chromosome}/statistics_over_chromosome.parquet",
+        # "output/compute_distribution_shift_over_chromosome/{model}/{accession}/{chromosome}/distribution_shift_over_chromosome.parquet",
+        "output/compute_prediction_variance_over_chromosome/{model}/{accession}/{chromosome}/prediction_variance_over_chromosome.parquet",
     output:
         "output/display_chromosome_boxplot/{model}/{accession}/{chromosome}/chromosome_boxplot.{format}",
     conda:
@@ -227,6 +262,15 @@ rule display_stacked_probability_chart:
     script:
         "scripts/display_stacked_probability_chart.py"
 
+rule display_distribution_shift_chart:
+    input:
+        "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
+    output:
+        "output/display_distribution_shift_chart/{model}/{accession}/{chromosome}/{position}/distribution_shift_chart.{format}",
+    conda:
+        "envs/scripts.yaml"
+    script:
+        "scripts/display_distribution_shift_chart.py"
 
 rule display_stacked_variance_chart:
     input:

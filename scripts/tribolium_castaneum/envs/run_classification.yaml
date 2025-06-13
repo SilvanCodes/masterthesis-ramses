@@ -1,0 +1,10 @@
+name: run_classification_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pandas=2.2.3
+  - scikit-learn
+  - pyarrow
+  - joblib
+  - numpy

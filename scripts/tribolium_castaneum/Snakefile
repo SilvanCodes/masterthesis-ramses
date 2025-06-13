@@ -7,6 +7,7 @@ localrules:
     download_annotation,
     download_utr_script,
     add_utr_to_annotation,
+    expand_annotation,
     all,
 
 # set to WANDB_MODE=disabled when not using it
@@ -27,12 +28,16 @@ EMBEDDING_WINDOW_SIZE = 100
 
 models = [
     "gonzalobenegas/gpn-brassicales",
+    "sbuedenb/beetle-gpn",
+    # "sbuedenb/beetle-gpn-wide",
+    "sbuedenb/beetle-gpn-wide-reduced"
 ]
 
 
 rule all:
     input:
         expand("output/embedding/umap/{model}.parquet", model=models),
+        # expand("output/embedding/classification/{model}.parquet", model=models),
 
 
 rule download_reference:
@@ -66,22 +71,10 @@ rule add_utr_to_annotation:
         "python {input} > {output}"
 
 
-rule mask_repeats:
-    input:
-        "output/genome.fa.gz",
-    output:
-        "output/mask_repeats/genome.fa.out.gff",
-    conda:
-        "envs/repeatmasker.yaml"
-    threads: workflow.cores
-    shell:
-        "RepeatMasker -species Tribolium_castaneum -dir output/mask_repeats -pa {threads} -gff {input}"
-
-
 rule expand_annotation:
     input:
         "output/annotation_utr.gtf",
-        # "output/mask_repeats/genome.fa.out.gff",
+        "output/genome.fa.gz",
     output:
         "output/annotation.expanded.parquet",
     conda:
@@ -123,14 +116,15 @@ rule define_embedding_windows:
         ) // 2 - EMBEDDING_WINDOW_SIZE // 2
         windows["end"] = windows.start + EMBEDDING_WINDOW_SIZE
 
+        # acts also as priority list if multiple annotations overlap
         features_of_interest = [
-            "intergenic",
-            "CDS",
-            "intron",
             "three_prime_UTR",
             "five_prime_UTR",
+            "CDS",
             "ncRNA_gene",
-            # "Repeat",
+            "intron",
+            "Repeat",
+            "intergenic",
         ]
 
         for f in features_of_interest:
@@ -138,9 +132,9 @@ rule define_embedding_windows:
             windows = bf.coverage(windows, gtf[gtf.feature == f])
             windows.rename(columns=dict(coverage=f), inplace=True)
 
-            # we keep if the center 100 bp are exactly covered by just on of the region of interest
+        # we keep if the center 100 bp are exactly covered by at least one of the region of interest
         windows = windows[
-            (windows[features_of_interest] == EMBEDDING_WINDOW_SIZE).sum(axis=1) == 1
+            (windows[features_of_interest] == EMBEDDING_WINDOW_SIZE).sum(axis=1) >= 1
         ]
         windows["Region"] = windows[features_of_interest].idxmax(axis=1)
         windows.drop(columns=features_of_interest, inplace=True)
@@ -180,3 +174,17 @@ rule run_umap:
         "envs/umap.yaml"
     script:
         "scripts/umap.py"
+
+rule run_classification:
+    input:
+        "{anything}/windows.parquet",
+        "{anything}/embeddings/{model}.parquet",
+    output:
+        "{anything}/classification/{model}.parquet",
+    threads: workflow.cores
+    resources:
+        slurm_extra="--mail-user=sbuedenb@smail.uni-koeln.de --mail-type=END,FAIL"
+    conda:
+        "envs/run_classification.yaml"
+    script:
+        "scripts/run_classification.py"

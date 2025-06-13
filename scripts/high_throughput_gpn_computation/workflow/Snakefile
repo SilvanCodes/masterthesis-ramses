@@ -7,12 +7,151 @@ container: "docker://continuumio/miniconda3"
 include: "rules/compute_gpn.smk"
 
 
+configurations = [
+    {
+        "accession": "BAC",
+        "chromosome": "EU382073.1",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 64809, "stop": 72891},
+            {"start": 145542, "stop": 154625},
+            {"start": 200642, "stop": 210233},
+        ],
+    },
+    {
+        "accession": "Bors_12",
+        "chromosome": "h1tg000001l:1539155-1704685",
+        "reverse_complement": True,
+        "positions": [
+            {"start": 19296, "stop": 28595},
+            {"start": 81970, "stop": 92289},
+            {"start": 143820, "stop": 151878},
+        ],
+    },
+    {
+        "accession": "Goli_08",
+        "chromosome": "h1tg000022l:224290-393930",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 11995, "stop": 21725},
+            {"start": 81338, "stop": 90143},
+            {"start": 140172, "stop": 150343},
+        ],
+    },
+    {
+        "accession": "Lan3.1",
+        "chromosome": "chr3:21866677-22051473",
+        "reverse_complement": True,
+        "positions": [
+            {"start": 20001, "stop": 29622},
+            {"start": 74981, "stop": 84046},
+            {"start": 156715, "stop": 164797},
+        ],
+    },{
+        "accession": "Lan3.1",
+        "chromosome": "AHB2_Lan3.1_chr3:4241036-4244757",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 0, "stop": 9999}
+        ],
+    },{
+        "accession": "Lan3.1",
+        "chromosome": "AHB1_Lan3.1_chr3:19529095-19532314",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 0, "stop": 9999}
+        ],
+    },
+    {
+        "accession": "Lan5",
+        "chromosome": "Chr3:26654299-26831685",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 20001, "stop": 28083},
+            {"start": 100746, "stop": 109829},
+            {"start": 147765, "stop": 157387},
+        ],
+    },
+    {
+        "accession": "Lan5_hap2",
+        "chromosome": "Chr3:23465017-23625889",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 20001, "stop": 28542},
+            {"start": 76736, "stop": 85696},
+            {"start": 131258, "stop": 140873},
+        ],
+    },
+    # {
+    #     "accession": "Noss_08",
+    #     "chromosome": "h1tg000006l:1479490-1622324",
+    #     "reverse_complement": False,
+    #     "positions": [
+    #     ],
+    # },
+    {
+        "accession": "Pais_09",
+        "chromosome": "tig00000673_chr3:1356930-1527379",
+        "reverse_complement": True,
+        "positions": [
+            {"start": 20001, "stop": 28957},
+            {"start": 66436, "stop": 76055},
+            {"start": 142436, "stop": 150450},
+        ],
+    },
+    {
+        "accession": "Rund_05_S1",
+        "chromosome": "h2tg000015l:6652465-6810532",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 13385, "stop": 21713},
+            {"start": 74557, "stop": 83507},
+            {"start": 129767, "stop": 138783},
+        ],
+    },
+    {
+        "accession": "Ukan_25",
+        "chromosome": "h1tg000003l:24225942-24390488",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 13390, "stop": 21722},
+            {"start": 83142, "stop": 92694},
+            {"start": 136322, "stop": 145258},
+        ],
+    },
+    {
+        "accession": "Wall_10",
+        "chromosome": "tig00000401_chr3:6197730-6356479",
+        "reverse_complement": False,
+        "positions": [
+            {"start": 20001, "stop": 28083},
+            {"start": 74745, "stop": 83690},
+            {"start": 129160, "stop": 138750},
+        ],
+    },
+    # Add more configurations as needed
+]
+
+
 rule all:
     input:
-        expand(
-            "results/{accession}/{chromosome}/{start_position}_{stop_position}/gpn_scores.parquet",
-            accession=config["ACCESSION"],
-            chromosome=config["CHROMOSOME"],
-            start_position=config["START_POSITION"],
-            stop_position=config["STOP_POSITION"],
-        ),
+        [
+            "results/{accession}/{chromosome}/{start_position}_{stop_position}_{reverse_complement}/gpn_scores.parquet".format(
+                accession=con["accession"],
+                chromosome=con["chromosome"],
+                reverse_complement="rev" if con["reverse_complement"] else "fwd",
+                start_position=position["start"],
+                stop_position=position["stop"],
+            )
+            for con in configurations
+            for position in con["positions"]
+        ],
+
+
+# expand(
+#     "results/{accession}/{chromosome}/{start_position}_{stop_position}/gpn_scores.parquet",
+#     accession=config["ACCESSION"],
+#     chromosome=config["CHROMOSOME"],
+#     start_position=config["START_POSITION"],
+#     stop_position=config["STOP_POSITION"],
+# ),
