@@ -1,0 +1,21 @@
+name: global_env_training
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - transformers>=4.48
+  - datasets>=3.7
+  - huggingface_hub
+  - safetensors
+  - pandas
+  - numpy
+  - pytorch
+  - pytorch-cuda
+  - tqdm
+  - ncbi-datasets-cli
+  - pip
+  - pip:
+      - git+https://github.com/SilvanCodes/gpn.git@main
