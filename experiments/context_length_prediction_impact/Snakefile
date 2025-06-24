@@ -180,6 +180,7 @@ rule compute_prediction_variance_over_chromosome:
     script:
         "scripts/compute_prediction_variance_over_chromosome.py"
 
+
 rule compute_distribution_shift_over_chromosome:
     input:
         annotation_db="output/create_annotation_db/{accession}/annotation.db",
@@ -262,6 +263,7 @@ rule display_stacked_probability_chart:
     script:
         "scripts/display_stacked_probability_chart.py"
 
+
 rule display_distribution_shift_chart:
     input:
         "output/compute_probabilities_per_context_length/{model}/{accession}/{chromosome}/{position}/probabilities_per_context_length.parquet",
@@ -271,6 +273,7 @@ rule display_distribution_shift_chart:
         "envs/scripts.yaml"
     script:
         "scripts/display_distribution_shift_chart.py"
+
 
 rule display_stacked_variance_chart:
     input:
