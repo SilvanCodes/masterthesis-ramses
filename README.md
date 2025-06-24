@@ -25,3 +25,5 @@ Most happens in `scripts` and `experiments`.
 https://huggingface.co/sbuedenb has all published models and datasets.
 
 https://api.wandb.ai/links/sbuedenb-university-of-cologne/wp5omxcc has all training and evaluation graphs of all the total 26 runs.
+
+https://www.semanticscholar.org/shared/library/folder/10788499 contains the researched literature.
