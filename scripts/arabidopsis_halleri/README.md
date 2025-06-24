@@ -1,6 +1,8 @@
-# 
+# _Arabidopsis halleri_
 
 This workflow is here in order to compute a UMAP of embeddings of the Lan3.1 genome from _Arabidopsis halleri_.
+
+It is adopted from https://github.com/songlab-cal/gpn/blob/main/analysis/gpn_arabidopsis/Snakefile
 
 ## Preparation
 
