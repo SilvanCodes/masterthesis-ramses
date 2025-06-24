@@ -1,0 +1,36 @@
+# assumes the first column contains the assembly name
+assemblies_path: "config/annotated_chrom+_ncbi_refseq_cucujiformia_assemblies.tsv"
+
+# Intervals from fasta file used for training:
+# - "all": all positions
+# - "defined": positions with defined nucleotides (not N)
+# - "annotation_{feature}": only <feature> positions from annotation, e.g. CDS, exon
+# - "balanced_v1": recipe used in original paper
+target_intervals: "balanced_v1"
+
+# window_size: 512
+# step_size: 256
+window_size: 1025
+step_size: 512
+add_rc: False # random rc is now done on-the-fly during training
+
+# chroms will be randomly assigned to splits
+split_proportion:
+  train: 0.99
+  validation: 0.005
+  test: 0.005
+
+# this chroms are forced to be in validation set
+whitelist_validation_chroms:
+  # - "NC_087403.1" # Tribolium Castaneum chr10
+  - "NC_087401.1" # Tribolium Castaneum chr8
+# this chroms are forced to be in test set
+whitelist_test_chroms:
+  # - "NC_087404.1" # Tribolium Castaneum chr11
+  - "NC_087402.1" # Tribolium Castaneum chr9
+
+# We want to split data into shards of e.g. ~100MB each
+# It's good to have at least num_cpus shards to increase parallel loading speed
+# of iterable datasets from HF hub
+# samples_per_file: 500_000
+samples_per_file: 250_000

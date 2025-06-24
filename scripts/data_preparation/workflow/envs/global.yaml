@@ -1,0 +1,18 @@
+name: global_env
+channels:
+  - pytorch
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - transformers=4.26.1
+  - huggingface_hub
+  - pandas
+  - numpy
+  - pytorch
+  - pytorch-cuda
+  - tqdm
+  - ncbi-datasets-cli
+  - pip
+  - pip:
+      - git+https://github.com/SilvanCodes/gpn.git@main

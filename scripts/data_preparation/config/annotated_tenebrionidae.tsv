@@ -1,0 +1,5 @@
+Assembly Accession	Assembly Name	Organism Name	Organism Infraspecific Names Breed	Organism Infraspecific Names Strain	Organism Infraspecific Names Cultivar	Organism Infraspecific Names Ecotype	Organism Infraspecific Names Isolate	Organism Infraspecific Names Sex	Annotation Name	Assembly Level	Assembly Release Date	WGS project accession	Assembly Stats Number of Scaffolds
+GCF_031307605.1	icTriCast1.1	Tribolium castaneum		GA2				male	GCF_031307605.1-RS_2024_04	Chromosome	2023-09-14	JANKOB01	148
+GCF_963966145.1	icTenMoli1.1	Tenebrio molitor							GCF_963966145.1-RS_2024_10	Chromosome	2024-02-12	CAWYQD01	236
+GCF_036711695.1	CSIRO_AGI_Zmor_V1	Zophobas morio				UQ-CSIRO	AGI-343-1		GCF_036711695.1-RS_2024_03	Contig	2024-02-20	JAVQLY01	1279
+GCF_015345945.1	Tmad_KSU_1.1	Tribolium madens	KSU strain				multiple individuals	pooled male and female	NCBI Tribolium madens Annotation Release 100	Scaffold	2020-11-10	JADDYM01	112

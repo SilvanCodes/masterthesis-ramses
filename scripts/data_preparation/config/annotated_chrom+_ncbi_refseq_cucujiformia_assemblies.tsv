@@ -1,0 +1,14 @@
+Assembly Accession	Assembly Name	Organism Name	Organism Infraspecific Names Breed	Organism Infraspecific Names Strain	Organism Infraspecific Names Cultivar	Organism Infraspecific Names Ecotype	Organism Infraspecific Names Isolate	Organism Infraspecific Names Sex	Annotation Name	Assembly Level	Assembly Release Date	WGS project accession	Assembly Stats Number of Scaffolds
+GCF_917563875.1	PGI_DIABVI_V3a	Diabrotica virgifera virgifera							NCBI Diabrotica virgifera virgifera Annotation Release 101	Chromosome	2022-07-29		10
+GCF_024364675.1	icAetTumi1.1	Aethina tumida					Nest 87	male	NCBI Aethina tumida Annotation Release 101	Chromosome	2022-07-22	JALKMD01	8
+GCF_031307605.1	icTriCast1.1	Tribolium castaneum		GA2				male	GCF_031307605.1-RS_2024_04	Chromosome	2023-09-14	JANKOB01	148
+GCF_914767665.1	icHarAxyr1.1	Harmonia axyridis							NCBI Harmonia axyridis Annotation Release 100	Chromosome	2021-09-16	CAJZBN01	13
+GCF_963966145.1	icTenMoli1.1	Tenebrio molitor							GCF_963966145.1-RS_2024_10	Chromosome	2024-02-12	CAWYQD01	236
+GCF_907165205.1	icCocSept1.1	Coccinella septempunctata							NCBI Coccinella septempunctata Annotation Release 100	Chromosome	2021-05-17	CAJRAZ01	24
+GCF_040115645.1	ASM4011564v1	Euwallacea fornicatus					EFF26	female	GCF_040115645.1-RS_2024_07	Chromosome	2024-06-11	JBBMRQ01	185
+GCF_022605725.1	icAntGran1.3	Anthonomus grandis grandis						male	NCBI Anthonomus grandis grandis Annotation Release 100	Chromosome	2022-08-03	JAKYJU02	304
+GCF_026250575.1	icDioCari1.1	Diorhabda carinulata					Delta	male	GCF_026250575.1-RS_2023_06	Chromosome	2022-11-21	JAOVUX01	68
+GCF_026230105.1	icDioSubl1.1	Diorhabda sublineata					icDioSubl1.1	male	GCF_026230105.1-RS_2023_05	Chromosome	2022-11-18	JAPHNJ01	310
+GCF_040954645.1	icDiaUnde3	Diabrotica undecimpunctata					CICGRU	male	GCF_040954645.1-RS_2025_03	Chromosome	2024-08-01	JBDMBP01	2867
+
+GCF_039881205.1	ESF131.1	Euwallacea similis					ESF13	female	GCF_039881205.1-RS_2024_07	Chromosome	2024-05-29	JBBMRO01	128
