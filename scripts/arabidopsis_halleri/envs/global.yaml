@@ -1,0 +1,12 @@
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - pandas=2.2.3
+  - biopython=1.85
+  - bioframe=0.7.2
+  - more-itertools=10.6.0
+  - pip
+  - pip:
+    - git+https://github.com/songlab-cal/gpn.git@main

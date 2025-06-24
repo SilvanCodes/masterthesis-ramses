@@ -1,0 +1,183 @@
+configfile: "config.yaml"
+
+
+conda: "envs/global.yaml"
+
+
+localrules:
+    # download_reference,
+    # download_annotation,
+    download_utr_script,
+    add_utr_to_annotation,
+    expand_annotation,
+    define_embedding_windows,
+    all,
+
+
+# set to WANDB_MODE=disabled when not using it
+envvars:
+    "WANDB_MODE",
+
+
+import pandas as pd
+from Bio import SeqIO
+import gzip
+import bioframe as bf
+from gpn.data import load_table, Genome, filter_length, make_windows
+import more_itertools
+
+
+WINDOW_SIZE = config["window_size"]
+EMBEDDING_WINDOW_SIZE = 100
+
+
+models = [
+    "gonzalobenegas/gpn-brassicales",
+]
+
+
+rule all:
+    input:
+        expand("results/embedding/umap/{model}.parquet", model=models),
+        # expand("results/embedding/classification/{model}.parquet", model=models),
+
+
+# rule download_reference:
+#     output:
+#         "output/genome.fa.gz",
+#     shell:
+#         "wget --no-check-certificate {config[FASTA_URL]} -O {output}"
+
+
+# rule download_annotation:
+#     output:
+#         "output/annotation.gtf.gz",
+#     shell:
+#         "wget --no-check-certificate {config[GTF_URL]} -O {output}"
+
+
+rule download_utr_script:
+    params:
+        url="https://ftp.ncbi.nlm.nih.gov/genomes/TOOLS/add_utrs_to_gff/add_utrs_to_gff.py",
+    output:
+        "resources/add_utrs_to_gff.py",
+    shell:
+        "wget --no-check-certificate {params.url} -O {output}"
+
+
+rule add_utr_to_annotation:
+    input:
+        "resources/add_utrs_to_gff.py",
+        "resources/Lan3.1.genomic.gff3.gz",
+    output:
+        "results/annotation_utr.gtf",
+    shell:
+        "python {input} > {output}"
+
+
+rule expand_annotation:
+    input:
+        "results/annotation_utr.gtf",
+    output:
+        "results/annotation.expanded.parquet",
+    conda:
+        "envs/expand_annotation.yaml"
+    script:
+        "scripts/expand_annotation.py"
+
+
+rule define_embedding_windows:
+    input:
+        "results/annotation.expanded.parquet",
+        "resources/Lan3.1.fna.gz",
+    output:
+        "results/embedding/windows.parquet",
+    run:
+        gtf = pd.read_parquet(input[0])
+        genome = Genome(input[1])
+        genome.filter_chroms(
+            ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8"]
+        )
+        defined_intervals = genome.get_defined_intervals()
+        defined_intervals = filter_length(defined_intervals, WINDOW_SIZE)
+        windows = make_windows(defined_intervals, WINDOW_SIZE, EMBEDDING_WINDOW_SIZE)
+        windows.rename(columns={"start": "full_start", "end": "full_end"}, inplace=True)
+
+        windows["start"] = (
+            windows.full_start + windows.full_end
+        ) // 2 - EMBEDDING_WINDOW_SIZE // 2
+        windows["end"] = windows.start + EMBEDDING_WINDOW_SIZE
+
+        features_of_interest = [
+            "intergenic",
+            "CDS",
+            "intron",
+            # "three_prime_UTR",
+            # "five_prime_UTR",
+            "ncRNA_gene",
+            # "Repeat",
+        ]
+
+        for f in features_of_interest:
+            print(f)
+            windows = bf.coverage(windows, gtf[gtf.feature == f])
+            windows.rename(columns=dict(coverage=f), inplace=True)
+
+            # we keep if the center 100 bp are exactly covered by just on of the region of interest
+        windows = windows[
+            (windows[features_of_interest] == EMBEDDING_WINDOW_SIZE).sum(axis=1) == 1
+        ]
+        windows["Region"] = windows[features_of_interest].idxmax(axis=1)
+        windows.drop(columns=features_of_interest, inplace=True)
+
+        windows.rename(
+            columns={"start": "center_start", "end": "center_end"}, inplace=True
+        )
+        windows.rename(columns={"full_start": "start", "full_end": "end"}, inplace=True)
+        print(windows)
+        windows.to_parquet(output[0], index=False)
+
+
+rule get_embeddings:
+    input:
+        "results/embedding/windows.parquet",
+        "resources/Lan3.1.fna.gz",
+    output:
+        "results/embedding/embeddings/{model}.parquet",
+    conda:
+        "envs/gpn.yaml"
+    threads: workflow.cores
+    resources:
+        slurm_extra="-G h100:1",
+    shell:
+        """
+        python -m gpn.ss.get_embeddings {input} {EMBEDDING_WINDOW_SIZE} \
+        {wildcards.model} {output} --per_device_batch_size 4000 --is_file \
+        --dataloader_num_workers {threads}
+        """
+
+
+rule run_umap:
+    input:
+        "{anything}/embeddings/{model}.parquet",
+    output:
+        "{anything}/umap/{model}.parquet",
+    conda:
+        "envs/umap.yaml"
+    script:
+        "scripts/umap.py"
+
+
+rule run_classification:
+    input:
+        "{anything}/windows.parquet",
+        "{anything}/embeddings/{model}.parquet",
+    output:
+        "{anything}/classification/{model}.parquet",
+    threads: workflow.cores
+    resources:
+        slurm_extra="--mail-user=sbuedenb@smail.uni-koeln.de --mail-type=END,FAIL"
+    conda:
+        "envs/run_classification.yaml"
+    script:
+        "scripts/run_classification.py"

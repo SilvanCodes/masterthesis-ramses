@@ -1,0 +1,35 @@
+# https://snakemake.github.io/snakemake-plugin-catalog/plugins/executor/slurm.html
+executor: slurm
+jobs: 10
+
+software-deployment-method: conda
+conda-prefix: /scratch/sbuedenb/snakemake
+
+
+default-resources:
+    slurm_partition: "smp"
+    slurm_account: "ag-wiehe"
+    mem: "32gb"
+    tasks: 1
+    cpus_per_task: 8
+    runtime: 15
+
+set-resources:
+    get_embeddings:
+        slurm_partition: "gpu" # deviating partition for this rule
+        mem: "64gb"
+        runtime: 90 # 1.5 hour
+        
+
+    run_umap:
+        mem: "128gb"
+        tasks: 1
+        cpus_per_task: 16
+        runtime: 90 # 1.5 hour
+
+    
+    run_classification:
+        mem: "256gb"
+        tasks: 4
+        cpus_per_task: 16
+        runtime: 1440 # 24 hours
