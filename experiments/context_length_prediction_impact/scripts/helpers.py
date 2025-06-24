@@ -85,12 +85,18 @@ def find_context_size_step_with_total_prediction_variance_below_threshold(
     rolling_var = rolling_variance(results, window_size=window_size)
     return rolling_var.index[rolling_var.sum(axis=1) < threshold].min()
 
+
 def get_distribution_shift(df):
     return df.diff().abs().sum(axis=1).div(2)[1:]
 
-def find_context_size_step_with_distribution_shift_below_threshold(results, window_size=10, threshold=0.01):
+
+def find_context_size_step_with_distribution_shift_below_threshold(
+    results, window_size=10, threshold=0.01
+):
     distribution_shift = get_distribution_shift(results)
-    roll_avg_diff = distribution_shift[::-1].rolling(window=window_size, min_periods=1).mean()[::-1]
+    roll_avg_diff = (
+        distribution_shift[::-1].rolling(window=window_size, min_periods=1).mean()[::-1]
+    )
     return roll_avg_diff.index[roll_avg_diff < threshold].min()
 
 
@@ -146,6 +152,7 @@ def plot_stacked_area(
 
     plt.savefig(path, format=format)
 
+
 def plot_line(
     df,
     path,
@@ -191,12 +198,22 @@ def boxplot(
     sample_sizes = data[x_col].value_counts().sort_index()
 
     for i, label in enumerate(sample_sizes):
-        plt.annotate(f"n={label}", (i, plt.gca().get_ylim()[0]), xytext=(0, -20), 
-                    textcoords='offset points', ha='center', va='top')
-        
+        plt.annotate(
+            f"n={label}",
+            (i, plt.gca().get_ylim()[0]),
+            xytext=(0, -20),
+            textcoords="offset points",
+            ha="center",
+            va="top",
+        )
+
     if marker:
         plt.axhline(
-            y=marker, color="red", linestyle="-", linewidth=1, label="training sample size"
+            y=marker,
+            color="red",
+            linestyle="-",
+            linewidth=1,
+            label="training sample size",
         )
 
     # Add labels and title
