@@ -11,3 +11,7 @@ The can be downloaded here for example: https://phytozome-next.jgi.doe.gov/info/
 ## Required programs
 
 `Conda` and `Snakemake` need to be installed.
+
+## Addons
+
+If you have SLURM available, install `snakemake-executor-plugin-slurm` and adapt `profiles/slurm`.
